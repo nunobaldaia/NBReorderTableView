@@ -1,6 +1,5 @@
 # NBReorderTableView
 
-[![CI Status](http://img.shields.io/travis/Nuno Baldaia/NBReorderTableView.svg?style=flat)](https://travis-ci.org/Nuno Baldaia/NBReorderTableView)
 [![Version](https://img.shields.io/cocoapods/v/NBReorderTableView.svg?style=flat)](http://cocoadocs.org/docsets/NBReorderTableView)
 [![License](https://img.shields.io/cocoapods/l/NBReorderTableView.svg?style=flat)](http://cocoadocs.org/docsets/NBReorderTableView)
 [![Platform](https://img.shields.io/cocoapods/p/NBReorderTableView.svg?style=flat)](http://cocoadocs.org/docsets/NBReorderTableView)
