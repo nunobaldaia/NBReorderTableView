@@ -68,4 +68,6 @@
 
 @property (nonatomic, assign) id <NBReorderTableViewDelegate> delegate;
 
+@property (strong, nonatomic, readonly) UILongPressGestureRecognizer *longPressGestureRecognizer;
+
 @end
