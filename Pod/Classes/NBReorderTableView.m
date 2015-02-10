@@ -172,6 +172,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     [UIView animateWithDuration:0.3 animations:^{
         self.placeholderView.frame = [self rectForRowAtIndexPath:self.movingIndexPath];
     } completion:^(BOOL finished) {
+        [self cellForRowAtIndexPath:self.movingIndexPath].hidden = NO;
         [self.placeholderView removeFromSuperview];
         self.placeholderView = nil;
         self.movingIndexPath = nil;
