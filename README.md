@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/cocoapods/p/NBReorderTableView.svg?style=flat)](http://cocoadocs.org/docsets/NBReorderTableView)
 
 
-NBReorderTableView is a `UITableView` subclass to support reordering cells with long press. This is being used in production on [Listary](http://listaryapp.com) and [Todoist for iOS](http://todoist.com)
+NBReorderTableView is a `UITableView` subclass to support reordering cells with long press. This is being used in production on --[Listary](http://listaryapp.com)-- and [Todoist for iOS](http://todoist.com)
 
 ![NBReorderTableView in use on Listary](screenshot.png)
 
@@ -66,8 +66,6 @@ And, finally, implement the `tableView:moveRowAtIndexPath:toIndexPath:` data sou
     [self.rows exchangeObjectAtIndex:sourceIndexPath.row withObjectAtIndex:destinationIndexPath.row];
 }
 ```
-
-To run the example project, clone the repo, and run `pod install` from the Example directory first.
 
 ## Author
 

@@ -9,7 +9,7 @@
 
 Pod::Spec.new do |s|
   s.name             = "NBReorderTableView"
-  s.version          = "0.1.3"
+  s.version          = "0.1.4"
   s.summary          = "Reorder table view cells with long press."
   s.description      = <<-DESC
                        NBReorderTableView is a `UITableView` subclass to support reordering cells with long press.
@@ -24,5 +24,5 @@ Pod::Spec.new do |s|
   s.platform     = :ios, '7.0'
   s.requires_arc = true
 
-  s.source_files = 'Pod/Classes/**/*'
+  s.source_files = 'NBReorderTableView/**/*'
 end
