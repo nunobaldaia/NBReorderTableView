@@ -21,7 +21,6 @@
 // THE SOFTWARE.
 
 
-#import <QuartzCore/CADisplayLink.h>
 #import "NBReorderTableView.h"
 
 
@@ -47,7 +46,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 {
     self = [super initWithCoder:aDecoder];
     if (self) {
-        [self commonInit];
+        [self initialize];
     }
     return self;
 }
@@ -56,7 +55,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 {
     self = [super initWithFrame:frame];
     if (self) {
-        [self commonInit];
+        [self initialize];
     }
     return self;
 }
@@ -65,12 +64,12 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 {
     self = [super initWithFrame:frame style:style];
     if (self) {
-        [self commonInit];
+        [self initialize];
     }
     return self;
 }
 
-- (void)commonInit
+- (void)initialize
 {
     UILongPressGestureRecognizer *longPressGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(longPressGestureRecognized:)];
     longPressGestureRecognizer.delegate = self;
@@ -107,11 +106,8 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
             break;
 
         case UIGestureRecognizerStateEnded:
-            [self finishMovingCell];
-            break;
-
         case UIGestureRecognizerStateCancelled:
-            [self cancelMovingCell];
+            [self finishMovingCell];
             break;
 
         default:
@@ -136,7 +132,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 
     // Store the current moving cell indexPath
     // This should be stored after calling tableView:willStartReorderingCellAtIndexPath:
-    // because it may change the data source (ex: collapse some cells)
+    // because it may change the data source (e.g. collapse some cells)
     self.movingIndexPath = [self indexPathForCell:cell];
 
     self.touchOriginY = self.placeholderView.center.y - location.y;
@@ -160,53 +156,33 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 - (void)finishMovingCell
 {
     // Reset autoscroll timer
-    [self.timerToAutoscroll invalidate];
-    self.timerToAutoscroll = nil;
+    [self.timerToAutoscroll invalidate]; self.timerToAutoscroll = nil;
 
-    // Inform the delegate that the reordering did end
+    // Inform the delegate that the reordering will finish
     if ([self.delegate respondsToSelector:@selector(tableView:willFinishReorderingCellAtIndexPath:)]) {
         [self.delegate tableView:self willFinishReorderingCellAtIndexPath:self.movingIndexPath];
     }
 
     // Reset the moving cell
     [UIView animateWithDuration:0.3 animations:^{
-        self.placeholderView.frame = [self rectForRowAtIndexPath:self.movingIndexPath];
+        self.placeholderView.frame = [self movingRect];
     } completion:^(BOOL finished) {
-        [self cellForRowAtIndexPath:self.movingIndexPath].hidden = NO;
+        [self movingCell].hidden = NO;
         [self.placeholderView removeFromSuperview];
         self.placeholderView = nil;
         self.movingIndexPath = nil;
-        [self reloadData];
-
+        
+        // Inform the delegate that the reordering did finish
         if ([self.delegate respondsToSelector:@selector(tableViewDidFinishReordering:)]) {
             [self.delegate tableViewDidFinishReordering:self];
         }
     }];
 }
 
-- (void)cancelMovingCell
-{
-    // Reset autoscroll timer
-    [self.timerToAutoscroll invalidate]; self.timerToAutoscroll = nil;
-
-    // Remove the moving cell
-    [self.placeholderView removeFromSuperview];
-    self.placeholderView = nil;
-    self.movingIndexPath = nil;
-    [self reloadData];
-
-    if ([self.delegate respondsToSelector:@selector(tableViewDidFinishReordering:)]) {
-        [self.delegate tableViewDidFinishReordering:self];
-    }
-}
-
 - (void)movingCellDidMove
 {
-    // Keep the moving cell hidden
-    UITableViewCell *movingCell = [self cellForRowAtIndexPath:self.movingIndexPath];
-
     // Ensure that the cell is kept hidden
-    movingCell.hidden = YES;
+    [self movingCell].hidden = YES;
 
     // Move row if necessary
     NSIndexPath *targetIndexPath = [self targetIndexPath];
@@ -229,7 +205,9 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
             [self.dataSource tableView:self moveRowAtIndexPath:oldMovingIndexPath toIndexPath:targetIndexPath];
         }
         
+        // Move rows
         [self moveRowAtIndexPath:oldMovingIndexPath toIndexPath:targetIndexPath];
+        
         [self endUpdates];
 
         // Ensure the moving view is always in front
@@ -245,12 +223,14 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     CGPoint location = [self.longPressGestureRecognizer locationInView:self];
 
     NSIndexPath *overlappingIndexPath = [self indexPathForRowAtPoint:location];
-
-    CGFloat diffY = self.placeholderView.frame.origin.y - [self rectForRowAtIndexPath:self.movingIndexPath].origin.y;
+    
+    CGRect movingRect = [self movingRect];
+    
+    CGFloat diffY = self.placeholderView.frame.origin.y - movingRect.origin.y;
 
     if (diffY < 0) { // Moving up
         // Check if the cell moved above the overlaping cell
-        if ([overlappingIndexPath compare:self.movingIndexPath] < 0 && location.y < (CGRectGetMinY([self rectForRowAtIndexPath:overlappingIndexPath]) + CGRectGetMaxY([self rectForRowAtIndexPath:self.movingIndexPath]))/2) {
+        if ([overlappingIndexPath compare:self.movingIndexPath] < 0 && location.y < (CGRectGetMinY([self rectForRowAtIndexPath:overlappingIndexPath]) + CGRectGetMaxY(movingRect))/2) {
             //NSLog(@"Move to indexPath above:%@", overlappingIndexPath);
             return overlappingIndexPath;
         }
@@ -267,7 +247,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     }
     else { // Moving down
         // Check if the cell moved below the overlaping cell
-        if ([overlappingIndexPath compare:self.movingIndexPath] > 0 && location.y > (CGRectGetMinY([self rectForRowAtIndexPath:self.movingIndexPath]) + CGRectGetMaxY([self rectForRowAtIndexPath:overlappingIndexPath]))/2) {
+        if ([overlappingIndexPath compare:self.movingIndexPath] > 0 && location.y > (CGRectGetMinY(movingRect) + CGRectGetMaxY([self rectForRowAtIndexPath:overlappingIndexPath]))/2) {
             //NSLog(@"Move to indexPath below:%@", overlappingIndexPath);
             return overlappingIndexPath;
         }
@@ -283,6 +263,14 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
         }
     }
     return nil;
+}
+
+- (UITableViewCell *)movingCell {
+    return [self cellForRowAtIndexPath:self.movingIndexPath];
+}
+
+- (CGRect)movingRect {
+    return [self rectForRowAtIndexPath:self.movingIndexPath];
 }
 
 #pragma mark - Autoscroll
