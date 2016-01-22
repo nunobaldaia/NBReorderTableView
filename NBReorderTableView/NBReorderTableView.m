@@ -167,7 +167,9 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     [UIView animateWithDuration:0.3 animations:^{
         self.placeholderView.frame = [self movingRect];
     } completion:^(BOOL finished) {
-        [self movingCell].hidden = NO;
+        for (UITableViewCell *cell in self.visibleCells) {
+            cell.hidden = NO;
+        }
         [self.placeholderView removeFromSuperview];
         self.placeholderView = nil;
         self.movingIndexPath = nil;
@@ -271,6 +273,20 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 
 - (CGRect)movingRect {
     return [self rectForRowAtIndexPath:self.movingIndexPath];
+}
+
+#pragma mark - Overriden
+
+- (UITableViewCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier {
+    UITableViewCell *cell = [super dequeueReusableCellWithIdentifier:identifier];
+    cell.hidden = NO;
+    return cell;
+}
+
+- (UITableViewCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier forIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [super dequeueReusableCellWithIdentifier:identifier forIndexPath:indexPath];
+    cell.hidden = NO;
+    return cell;
 }
 
 #pragma mark - Autoscroll
