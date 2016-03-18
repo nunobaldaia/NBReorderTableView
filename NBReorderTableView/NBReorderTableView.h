@@ -27,12 +27,12 @@
 /**
  Asks the delegate a placeholder view to be dragged by the user, representing the cell being reordered. (required)
  
- @discussion In order to give more freedom on configuring this view, its frame must be set by the delegate.
+ @discussion In order to give more freedom on configuring this view, its frame must be set by the delegate. Returning a nil view will cancel the move.
  
  @param tableView The table-view object requesting this information.
  @param cell The cell being reordered.
  */
-- (UIView *)tableView:(UITableView *)tableView placeholderViewForReorderingCell:(UITableViewCell *)cell;
+- (nullable UIView *)tableView:(nonnull UITableView *)tableView placeholderViewForReorderingCell:(nonnull UITableViewCell *)cell;
 
 @optional
 
@@ -42,7 +42,7 @@
  @param tableView The table-view object requesting this information.
  @param indexPath The original index path of the cell.
  */
-- (void)tableView:(UITableView *)tableView willStartReorderingCellAtIndexPath:(NSIndexPath *)indexPath;
+- (void)tableView:(nonnull UITableView *)tableView willStartReorderingCellAtIndexPath:(nonnull NSIndexPath *)indexPath;
 
 /**
  Informs the delegate that the table-view will finish reordering a cell.
@@ -50,7 +50,7 @@
  @param tableView The table-view object requesting this information.
  @param indexPath The final index path of the cell.
  */
-- (void)tableView:(UITableView *)tableView willFinishReorderingCellAtIndexPath:(NSIndexPath *)indexPath;
+- (void)tableView:(nonnull UITableView *)tableView willFinishReorderingCellAtIndexPath:(nonnull NSIndexPath *)indexPath;
 
 /**
  Informs the delegate that the reordering has finished.
@@ -59,15 +59,15 @@
  
  @param tableView The table-view object requesting this information.
 */
-- (void)tableViewDidFinishReordering:(UITableView *)tableView;
+- (void)tableViewDidFinishReordering:(nonnull UITableView *)tableView;
 
 @end
 
 
 @interface NBReorderTableView : UITableView <UIGestureRecognizerDelegate>
 
-@property (nonatomic, assign) id <NBReorderTableViewDelegate> delegate;
+@property (nonatomic, weak) id <NBReorderTableViewDelegate> delegate;
 
-@property (strong, nonatomic, readonly) UILongPressGestureRecognizer *longPressGestureRecognizer;
+@property (strong, nonatomic, readonly) UILongPressGestureRecognizer * _Nonnull longPressGestureRecognizer;
 
 @end

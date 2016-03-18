@@ -30,6 +30,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 @interface NBReorderTableView ()
 
 @property (strong, nonatomic) UILongPressGestureRecognizer *longPressGestureRecognizer;
+@property (nonatomic, assign) BOOL isMovingCell;
 @property (strong, nonatomic) NSIndexPath *movingIndexPath;
 @property (strong, nonatomic) UIView *placeholderView;
 @property (nonatomic) CGFloat touchOriginY;
@@ -39,8 +40,8 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 @end
 
 @implementation NBReorderTableView
-
 @dynamic delegate;
+
 
 - (id)initWithCoder:(NSCoder *)aDecoder
 {
@@ -78,6 +79,17 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     self.longPressGestureRecognizer = longPressGestureRecognizer;
 }
 
+
+- (void)setDelegate:(id <NBReorderTableViewDelegate>)delegate
+{
+    if (delegate) {
+        NSAssert([delegate respondsToSelector:@selector(tableView:placeholderViewForReorderingCell:)], @"%@ doesn't conform to NBReorderTableViewDelegate, -tableView:placeholderViewForReorderingCell: is required", delegate);
+    }
+    
+    super.delegate = delegate;
+}
+
+
 #pragma mark - Gesture recognizer
 
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer
@@ -96,50 +108,62 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 {
     CGPoint locationInView = [gestureRecognizer locationInView:self];
 
-    switch (gestureRecognizer.state) {
-        case UIGestureRecognizerStateBegan:
-            [self startMovingCellAtLocation:locationInView];
-            break;
+    if (gestureRecognizer.state == UIGestureRecognizerStateBegan) {
+        self.isMovingCell = [self startMovingCellAtLocation:locationInView];
+    } else if(self.isMovingCell) {
+        switch (gestureRecognizer.state) {
+            case UIGestureRecognizerStateChanged:
+                [self keepMovingCellAtLocation:locationInView];
+                break;
 
-        case UIGestureRecognizerStateChanged:
-            [self keepMovingCellAtLocation:locationInView];
-            break;
+            case UIGestureRecognizerStateEnded:
+            case UIGestureRecognizerStateCancelled:
+                [self finishMovingCell];
+                self.isMovingCell = FALSE;
+                break;
 
-        case UIGestureRecognizerStateEnded:
-        case UIGestureRecognizerStateCancelled:
-            [self finishMovingCell];
-            break;
-
-        default:
-            break;
+            default:
+                break;
+        }
     }
 }
 
 #pragma mark - Internal API
 
-- (void)startMovingCellAtLocation:(CGPoint)location
+- (BOOL)startMovingCellAtLocation:(CGPoint)location
 {
     NSIndexPath *indexPath = [self indexPathForRowAtPoint:location];
     UITableViewCell *cell = [self cellForRowAtIndexPath:indexPath];
-
+    
+    if (!cell) {
+        return FALSE;
+    }
+    
     // Request a dragging view from the delegate
-    self.placeholderView = [self.delegate tableView:self placeholderViewForReorderingCell:cell];
-
+    UIView *placeholderView = [self.delegate tableView:self placeholderViewForReorderingCell:cell];
+    self.placeholderView = placeholderView;
+    
+    if (!placeholderView) {
+        return FALSE;
+    }
+    
     // Inform the delegate that the reordering is about to begin
     if ([self.delegate respondsToSelector:@selector(tableView:willStartReorderingCellAtIndexPath:)]) {
         [self.delegate tableView:self willStartReorderingCellAtIndexPath:indexPath];
     }
-
+    
     // Store the current moving cell indexPath
     // This should be stored after calling tableView:willStartReorderingCellAtIndexPath:
     // because it may change the data source (e.g. collapse some cells)
     self.movingIndexPath = [self indexPathForCell:cell];
-
+    
     self.touchOriginY = self.placeholderView.center.y - location.y;
-
+    
     // Hide the cell and add the moving placeholder
     cell.hidden = YES;
-    [self addSubview:self.placeholderView];
+    [self addSubview:placeholderView];
+    
+    return TRUE;
 }
 
 - (void)keepMovingCellAtLocation:(CGPoint)location
@@ -187,21 +211,20 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     [self movingCell].hidden = YES;
 
     // Move row if necessary
-    NSIndexPath *targetIndexPath = [self targetIndexPath];
-
-    if (targetIndexPath) {
+    NSIndexPath *targetIndexPath = self.targetIndexPath;
+    NSIndexPath *oldMovingIndexPath = self.movingIndexPath;
+    
+    if (targetIndexPath && oldMovingIndexPath) {
         // Keep the target index path on a valid position
         if ([self.delegate respondsToSelector:@selector(tableView:targetIndexPathForMoveFromRowAtIndexPath:toProposedIndexPath:)]) {
-            targetIndexPath = [self.delegate tableView:self targetIndexPathForMoveFromRowAtIndexPath:self.movingIndexPath toProposedIndexPath:targetIndexPath];
+            targetIndexPath = [self.delegate tableView:self targetIndexPathForMoveFromRowAtIndexPath:oldMovingIndexPath toProposedIndexPath:targetIndexPath];
         }
-
-        NSIndexPath *oldMovingIndexPath = self.movingIndexPath;
-
+        
         // Store the new index path
         self.movingIndexPath = targetIndexPath;
         
         [self beginUpdates];
-
+        
         // Update the data source
         if ([self.dataSource respondsToSelector:@selector(tableView:moveRowAtIndexPath:toIndexPath:)]) {
             [self.dataSource tableView:self moveRowAtIndexPath:oldMovingIndexPath toIndexPath:targetIndexPath];
@@ -213,7 +236,11 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
         [self endUpdates];
 
         // Ensure the moving view is always in front
-        [self bringSubviewToFront:self.placeholderView];
+        UIView *placeholderView = self.placeholderView;
+        
+        if (placeholderView) {
+            [self bringSubviewToFront:placeholderView];
+        }
     }
 }
 
@@ -223,11 +250,9 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 - (NSIndexPath *)targetIndexPath
 {
     CGPoint location = [self.longPressGestureRecognizer locationInView:self];
-
     NSIndexPath *overlappingIndexPath = [self indexPathForRowAtPoint:location];
     
     CGRect movingRect = [self movingRect];
-    
     CGFloat diffY = self.placeholderView.frame.origin.y - movingRect.origin.y;
 
     if (diffY < 0) { // Moving up
@@ -236,6 +261,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
             //NSLog(@"Move to indexPath above:%@", overlappingIndexPath);
             return overlappingIndexPath;
         }
+        
         if (overlappingIndexPath == nil || overlappingIndexPath.section < self.movingIndexPath.section) {
             // Check if it's above the current section
             for (NSInteger section = self.movingIndexPath.section; section > 0 ; section--) {
@@ -253,6 +279,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
             //NSLog(@"Move to indexPath below:%@", overlappingIndexPath);
             return overlappingIndexPath;
         }
+        
         if (overlappingIndexPath == nil || overlappingIndexPath.section > self.movingIndexPath.section) {
             // Check if it's inside some section below
             for (NSInteger section = self.numberOfSections-1; section > self.movingIndexPath.section; section--) {
@@ -264,16 +291,30 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
             }
         }
     }
+    
     return nil;
 }
 
-- (UITableViewCell *)movingCell {
-    return [self cellForRowAtIndexPath:self.movingIndexPath];
+- (nullable UITableViewCell *)movingCell {
+    NSIndexPath *movingIndexPath = self.movingIndexPath;
+    
+    if (movingIndexPath) {
+        return [self cellForRowAtIndexPath:movingIndexPath];
+    }
+    
+    return nil;
 }
 
 - (CGRect)movingRect {
-    return [self rectForRowAtIndexPath:self.movingIndexPath];
+    NSIndexPath *movingIndexPath = self.movingIndexPath;
+    
+    if (movingIndexPath) {
+        return [self rectForRowAtIndexPath:movingIndexPath];
+    }
+    
+    return CGRectNull;
 }
+
 
 #pragma mark - Overriden
 
