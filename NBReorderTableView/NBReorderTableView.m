@@ -79,12 +79,6 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 }
 
 
-- (void)setDelegate:(id <NBReorderTableViewDelegate>)delegate
-{
-    super.delegate = delegate;
-}
-
-
 #pragma mark - Gesture recognizer
 
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer
@@ -105,7 +99,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     
     switch (gestureRecognizer.state) {
         case UIGestureRecognizerStateBegan:
-            [self startMovingCellAtLocation:locationInView]
+            [self startMovingCellAtLocation:locationInView];
             break;
             
         case UIGestureRecognizerStateChanged:
