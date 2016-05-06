@@ -30,7 +30,6 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 @interface NBReorderTableView ()
 
 @property (strong, nonatomic) UILongPressGestureRecognizer *longPressGestureRecognizer;
-@property (nonatomic, assign) BOOL isMovingCell;
 @property (strong, nonatomic) NSIndexPath *movingIndexPath;
 @property (strong, nonatomic) UIView *placeholderView;
 @property (nonatomic) CGFloat touchOriginY;
@@ -82,10 +81,6 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 
 - (void)setDelegate:(id <NBReorderTableViewDelegate>)delegate
 {
-    if (delegate) {
-        NSAssert([delegate respondsToSelector:@selector(tableView:placeholderViewForReorderingCell:)], @"%@ doesn't conform to NBReorderTableViewDelegate, -tableView:placeholderViewForReorderingCell: is required", delegate);
-    }
-    
     super.delegate = delegate;
 }
 
@@ -107,36 +102,47 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 - (void)longPressGestureRecognized:(UILongPressGestureRecognizer *)gestureRecognizer
 {
     CGPoint locationInView = [gestureRecognizer locationInView:self];
-
-    if (gestureRecognizer.state == UIGestureRecognizerStateBegan) {
-        self.isMovingCell = [self startMovingCellAtLocation:locationInView];
-    } else if(self.isMovingCell) {
-        switch (gestureRecognizer.state) {
-            case UIGestureRecognizerStateChanged:
+    
+    switch (gestureRecognizer.state) {
+        case UIGestureRecognizerStateBegan:
+            [self startMovingCellAtLocation:locationInView]
+            break;
+            
+        case UIGestureRecognizerStateChanged:
+            if([self isMovingCell]) {
                 [self keepMovingCellAtLocation:locationInView];
-                break;
+            }
+            break;
 
-            case UIGestureRecognizerStateEnded:
-            case UIGestureRecognizerStateCancelled:
+        case UIGestureRecognizerStateEnded:
+        case UIGestureRecognizerStateCancelled:
+            if([self isMovingCell]) {
                 [self finishMovingCell];
-                self.isMovingCell = FALSE;
-                break;
+            }
+            break;
 
-            default:
-                break;
-        }
+        default:
+            break;
     }
 }
 
 #pragma mark - Internal API
 
-- (BOOL)startMovingCellAtLocation:(CGPoint)location
+- (BOOL)isMovingCell
 {
+    return placeholderView != nil;
+}
+
+- (void)startMovingCellAtLocation:(CGPoint)location
+{
+    // Reset the state
+    self.placeholderView = nil;
+    
     NSIndexPath *indexPath = [self indexPathForRowAtPoint:location];
     UITableViewCell *cell = [self cellForRowAtIndexPath:indexPath];
     
     if (!cell) {
-        return FALSE;
+        return;
     }
     
     // Request a dragging view from the delegate
@@ -144,7 +150,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     self.placeholderView = placeholderView;
     
     if (!placeholderView) {
-        return FALSE;
+        return;
     }
     
     // Inform the delegate that the reordering is about to begin
@@ -162,8 +168,6 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     // Hide the cell and add the moving placeholder
     cell.hidden = YES;
     [self addSubview:placeholderView];
-    
-    return TRUE;
 }
 
 - (void)keepMovingCellAtLocation:(CGPoint)location
