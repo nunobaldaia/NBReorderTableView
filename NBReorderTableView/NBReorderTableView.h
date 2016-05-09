@@ -22,17 +22,20 @@
 
 #import <UIKit/UIKit.h>
 
+
 @protocol NBReorderTableViewDelegate <UITableViewDelegate>
+
+NS_ASSUME_NONNULL_BEGIN
 
 /**
  Asks the delegate a placeholder view to be dragged by the user, representing the cell being reordered. (required)
  
- @discussion In order to give more freedom on configuring this view, its frame must be set by the delegate.
+ @discussion In order to give more freedom on configuring this view, its frame must be set by the delegate. Returning a nil view will cancel the move.
  
  @param tableView The table-view object requesting this information.
  @param cell The cell being reordered.
  */
-- (UIView *)tableView:(UITableView *)tableView placeholderViewForReorderingCell:(UITableViewCell *)cell;
+- (nullable UIView *)tableView:(UITableView *)tableView placeholderViewForReorderingCell:(UITableViewCell *)cell;
 
 @optional
 
@@ -61,13 +64,18 @@
 */
 - (void)tableViewDidFinishReordering:(UITableView *)tableView;
 
+NS_ASSUME_NONNULL_END
+
 @end
 
 
 @interface NBReorderTableView : UITableView <UIGestureRecognizerDelegate>
 
-@property (nonatomic, assign) id <NBReorderTableViewDelegate> delegate;
+NS_ASSUME_NONNULL_BEGIN
 
+@property (nonatomic, weak) id <NBReorderTableViewDelegate> delegate;
 @property (strong, nonatomic, readonly) UILongPressGestureRecognizer *longPressGestureRecognizer;
+
+NS_ASSUME_NONNULL_END
 
 @end
