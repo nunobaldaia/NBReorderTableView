@@ -103,14 +103,14 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
             break;
             
         case UIGestureRecognizerStateChanged:
-            if([self isMovingCell]) {
+            if ([self isMovingCell]) {
                 [self keepMovingCellAtLocation:locationInView];
             }
             break;
 
         case UIGestureRecognizerStateEnded:
         case UIGestureRecognizerStateCancelled:
-            if([self isMovingCell]) {
+            if ([self isMovingCell]) {
                 [self finishMovingCell];
             }
             break;
@@ -124,7 +124,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
 
 - (BOOL)isMovingCell
 {
-    return placeholderView != nil;
+    return self.placeholderView != nil;
 }
 
 - (void)startMovingCellAtLocation:(CGPoint)location
@@ -135,17 +135,18 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     NSIndexPath *indexPath = [self indexPathForRowAtPoint:location];
     UITableViewCell *cell = [self cellForRowAtIndexPath:indexPath];
     
-    if (!cell) {
+    if (cell == nil) {
         return;
     }
     
     // Request a dragging view from the delegate
     UIView *placeholderView = [self.delegate tableView:self placeholderViewForReorderingCell:cell];
-    self.placeholderView = placeholderView;
     
-    if (!placeholderView) {
+    if (placeholderView == nil) {
         return;
     }
+
+    self.placeholderView = placeholderView;
     
     // Inform the delegate that the reordering is about to begin
     if ([self.delegate respondsToSelector:@selector(tableView:willStartReorderingCellAtIndexPath:)]) {
@@ -154,7 +155,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     
     // Store the current moving cell indexPath
     // This should be stored after calling tableView:willStartReorderingCellAtIndexPath:
-    // because it may change the data source (e.g. collapse some cells)
+    // because the delegate may change the data source (e.g. collapse some cells)
     self.movingIndexPath = [self indexPathForCell:cell];
     
     self.touchOriginY = self.placeholderView.center.y - location.y;
