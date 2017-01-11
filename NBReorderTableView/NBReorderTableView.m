@@ -182,7 +182,7 @@ CGFloat const AutoScrollingMinDistanceFromEdge = 60;
     [self.timerToAutoscroll invalidate]; self.timerToAutoscroll = nil;
 
     // Inform the delegate that the reordering will finish
-    if ([self.delegate respondsToSelector:@selector(tableView:willFinishReorderingCellAtIndexPath:)]) {
+    if (self.movingIndexPath != nil && [self.delegate respondsToSelector:@selector(tableView:willFinishReorderingCellAtIndexPath:)]) {
         [self.delegate tableView:self willFinishReorderingCellAtIndexPath:self.movingIndexPath];
     }
 
